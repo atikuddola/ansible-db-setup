@@ -1,0 +1,32 @@
+# PostgreSQL version & RHEL-specific paths
+postgresql_version: "17"
+postgresql_version_short: "17"  # For service name: postgresql-17
+
+# RHEL 9 PGDG paths
+postgresql_conf_dir: "/data/pgsql/{{ postgresql_version_short }}/data"
+postgresql_data_dir: "/data/pgsql/{{ postgresql_version_short }}/data"
+postgresql_bin_dir: "/usr/pgsql-{{ postgresql_version_short }}/bin"
+postgresql_service_name: "postgresql-{{ postgresql_version_short }}"
+
+# Network & Connection
+postgresql_listen_addresses: "0.0.0.0"
+postgresql_port: 5432
+
+# Server Specs (tune based on RAM/CPU)
+postgresql_conf:
+  max_connections: 200
+  shared_buffers: "4GB"           # ~25% of RAM
+  effective_cache_size: "12GB"    # ~50-75% of RAM
+  maintenance_work_mem: "1GB"
+  work_mem: "64MB"
+  wal_level: "replica"
+  max_wal_senders: 5
+  checkpoint_timeout: "15min"
+  log_min_duration_statement: 1000
+
+# pg_hba.conf Rules
+pg_hba_rules:
+  - { type: "local",  database: "all",         user: "postgres", address: "",              method: "peer" }
+  - { type: "host",   database: "all",         user: "app_user",  address: "192.178.1.0/24", method: "scram-sha-256" }
+  - { type: "host",   database: "all",         user: "monitor",  address: "10.0.0.5/32",    method: "scram-sha-256" }
+  - { type: "hostssl",database: "replication", user: "repl_user",address: "192.178.1.0/24", method: "scram-sha-256" }

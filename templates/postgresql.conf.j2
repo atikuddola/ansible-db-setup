@@ -1,0 +1,20 @@
+# ⚠️ Ansible Managed - Do not edit manually
+listen_addresses = '{{ postgresql_listen_addresses }}'
+port = {{ postgresql_port }}
+max_connections = {{ postgresql_conf.max_connections }}
+shared_buffers = '{{ postgresql_conf.shared_buffers }}'
+effective_cache_size = '{{ postgresql_conf.effective_cache_size }}'
+maintenance_work_mem = '{{ postgresql_conf.maintenance_work_mem }}'
+work_mem = '{{ postgresql_conf.work_mem }}'
+wal_level = '{{ postgresql_conf.wal_level }}'
+max_wal_senders = {{ postgresql_conf.max_wal_senders }}
+checkpoint_timeout = '{{ postgresql_conf.checkpoint_timeout }}'
+log_min_duration_statement = {{ postgresql_conf.log_min_duration_statement }}
+
+# RHEL 9 PGDG defaults
+data_directory = '{{ postgresql_data_dir }}'
+hba_file = '{{ postgresql_conf_dir }}/pg_hba.conf'
+ident_file = '{{ postgresql_conf_dir }}/pg_ident.conf'
+
+# Include additional config snippets (optional)
+include_dir = 'conf.d'

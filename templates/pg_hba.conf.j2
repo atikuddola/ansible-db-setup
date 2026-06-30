@@ -1,0 +1,5 @@
+# ⚠️ Ansible Managed - Do not edit manually
+# TYPE  DATABASE        USER            ADDRESS                 METHOD
+{% for rule in pg_hba_rules %}
+{{ "%-8s %-16s %-16s %-24s %s" | format(rule.type, rule.database, rule.user, rule.address, rule.method) }}
+{% endfor %}

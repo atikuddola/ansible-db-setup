@@ -1,0 +1,110 @@
+---
+# =========================
+# PLAY 1: Setup PGDG Repo
+# =========================
+- name: Setup PGDG Repository
+  hosts: postgres_servers
+  become: yes
+
+  vars:
+    pgdg_repo_rpm: "https://download.postgresql.org/pub/repos/yum/reporpms/EL-9-x86_64/pgdg-redhat-repo-latest.noarch.rpm"
+
+  tasks:
+    - name: Install PGDG repository RPM
+      dnf:
+        name: "{{ pgdg_repo_rpm }}"
+        state: present
+        disable_gpg_check: yes
+
+    - name: Disable RHEL PostgreSQL module
+      command: dnf module disable -y postgresql
+      changed_when: false
+      failed_when: false
+
+    - name: Clean DNF cache
+      command: dnf clean all
+      changed_when: false
+
+    - name: Refresh DNF metadata
+      command: dnf makecache --refresh
+      changed_when: false
+
+    - name: Enable PGDG repos
+      command: dnf config-manager --set-enabled pgdg17 pgdg-common
+      changed_when: false
+      failed_when: false
+
+
+# =========================
+# PLAY 2: Install PostgreSQL 17
+# =========================
+- name: Install PostgreSQL 17 Server
+  hosts: postgres_servers
+  become: yes
+
+  vars:
+    pg_version: "17"
+    pg_service: "postgresql-17"
+    pg_bin: "/usr/pgsql-17/bin"
+    pg_data_dir: "/data/pgsql/17/data"
+
+  tasks:
+
+    # -------------------------
+    # INSTALL PACKAGE
+    # -------------------------
+    - name: Install PostgreSQL 17 server package
+      dnf:
+        name: "postgresql{{ pg_version }}-server"
+        state: present
+
+    # -------------------------
+    # CREATE DATA DIRECTORY
+    # -------------------------
+    - name: Create PostgreSQL data directory
+      file:
+        path: "{{ pg_data_dir }}"
+        state: directory
+        owner: postgres
+        group: postgres
+        mode: '0700'
+        recurse: yes
+
+    # -------------------------
+    # INIT DB IN /data
+    # -------------------------
+    - name: Initialize PostgreSQL database in /data
+      command: "{{ pg_bin }}/initdb -D {{ pg_data_dir }}"
+      args:
+        creates: "{{ pg_data_dir }}/PG_VERSION"
+      become_user: postgres
+
+    # -------------------------
+    # SYSTEMD OVERRIDE (CRITICAL FIX)
+    # -------------------------
+    - name: Create systemd override directory
+      file:
+        path: /etc/systemd/system/postgresql-17.service.d
+        state: directory
+        mode: '0755'
+
+    - name: Set PGDATA override for systemd
+      copy:
+        dest: /etc/systemd/system/postgresql-17.service.d/override.conf
+        content: |
+          [Service]
+          Environment=PGDATA={{ pg_data_dir }}
+
+    - name: Reload systemd daemon
+      command: systemctl daemon-reload
+      changed_when: false
+
+    # -------------------------
+    # START SERVICE
+    # -------------------------
+    - name: Enable and start PostgreSQL service
+      systemd:
+        name: "{{ pg_service }}"
+        enabled: yes
+        state: started
+        daemon_reload: yes
